@@ -4,6 +4,8 @@
 // @version      2026.01.19
 // @description  Etiquetas por listas, marco amarillo y botones de control
 // @author       wernser412
+// @icon         https://github.com/wernser412/TMOHentai-Tags/blob/main/ICONO.png?raw=true
+// @downloadURL  https://github.com/wernser412/TMOHentai-Tags/raw/refs/heads/main/TMOHentai%20-%20Listas%20PRO.user.js
 // @match        https://tmohentai.com/*
 // @grant        GM_setValue
 // @grant        GM_getValue
