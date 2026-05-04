@@ -30,12 +30,10 @@ Diseñado para ser **estable**, **rápido** y **resistente a límites de peticio
 
 ## 📥 Instalación
 
-1. Instala la extensión [Tampermonkey](https://www.tampermonkey.net/) para tu navegador.
-2. Abre este script desde GitHub y haz clic en `Raw`.
-3. Tampermonkey lo detectará y ofrecerá instalarlo.
-
-> También puedes hacer click en [`userscript.js`](https://github.com/wernser412/TMOHentai-Tags/raw/refs/heads/main/TMOHentai%20-%20Listas%20PRO.user.js) para instalar automaticamente en Tampermonkey.
-
+1. Instala la extensión [Tampermonkey](https://www.tampermonkey.net/) en tu navegador.
+2. Haz clic en este enlace para instalar el script:  
+   👉 **[Descargar Script](https://github.com/wernser412/TMOHentai-Tags/raw/refs/heads/main/TMOHentai%20-%20Listas%20PRO.user.js)**
+   
 ---
 
 ## ▶️ Uso
