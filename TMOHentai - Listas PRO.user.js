@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         TMOHentai - Listas PRO
 // @namespace    https://tmohentai.com/
-// @version      2026.05.03
-// @description  Etiquetas + modo PRO + auto listas + fix hora
+// @version      2026.05.05
+// @description  Etiquetas + modo PRO + auto listas + fix hora + SPA FIX
 // @author       wernser412
 // @icon         https://github.com/wernser412/TMOHentai-Tags/blob/main/ICONO.png?raw=true
 // @downloadURL  https://github.com/wernser412/TMOHentai-Tags/raw/refs/heads/main/TMOHentai%20-%20Listas%20PRO.user.js
@@ -127,13 +127,15 @@ async function cargarPRO(){
  const listas=GM_getValue("tmo_listas",{});
  const mangas={};
 
- let total=0;
+ let totalListas = Object.keys(listas).length;
+ let indexLista = 0;
 
  for(const [nombre,links] of Object.entries(listas)){
+  indexLista++;
+
   for(const url of links){
 
-   total++;
-   msg(`🚀 ${nombre} (${total})`);
+   msg(`🚀 ${nombre} (${indexLista}/${totalListas})`);
 
    let page=1;
    let seguir=true;
@@ -144,9 +146,10 @@ async function cargarPRO(){
     if(!doc) break;
 
     const items=doc.querySelectorAll(".list-manga-wrap");
-    if(!items.length) break;
-
-    let nuevos=0;
+    if(!items.length){
+     seguir=false;
+     break;
+    }
 
     items.forEach(wrap=>{
      const btn=wrap.querySelector(".btn-remove-from-list");
@@ -155,19 +158,16 @@ async function cargarPRO(){
      const id=btn.dataset.mangaId;
      if(!id) return;
 
-     if(!mangas[id]){
-      mangas[id]=[];
-      nuevos++;
-     }
+     if(!mangas[id]) mangas[id]=[];
 
      if(!mangas[id].includes(nombre)){
       mangas[id].push(nombre);
      }
     });
 
-    msg(`📄 ${nombre} - página ${page}`);
-
-    if(nuevos===0) seguir=false;
+    if(page % 3 === 0){
+     msg(`📄 ${nombre} - página ${page}`);
+    }
 
     page++;
     await sleep(ESPERA_MS);
@@ -200,7 +200,7 @@ function limpiarCache(){
  setTimeout(hideMsg,1200);
 }
 
-/* ================= HORA (FIX) ================= */
+/* ================= HORA ================= */
 
 function aplicarHora(){
  const v = GM_getValue("hora", false);
@@ -216,7 +216,7 @@ function toggleHora(){
  setTimeout(hideMsg,1000);
 }
 
-/* ================= YAOI (FIX) ================= */
+/* ================= YAOI ================= */
 
 function aplicarYaoi(){
  const v = GM_getValue("yaoi", false);
@@ -251,7 +251,7 @@ function aplicarEtiquetas(){
  if(!Object.keys(mangas).length) return;
 
  const colores=GM_getValue("tmo_colores",{});
- let idx=Object.keys(colores).length;
+ let idx=0;
 
  document.querySelectorAll(".element-thumbnail, .list-manga-wrap").forEach(card=>{
 
@@ -281,6 +281,8 @@ function aplicarEtiquetas(){
   thumb.style.position="relative";
 
   const wrap=document.createElement("div");
+  wrap.className="tmo-labels";
+
   Object.assign(wrap.style,{
    position:"absolute",
    bottom:"6px",
@@ -295,7 +297,7 @@ function aplicarEtiquetas(){
    if(!colores[lista]) colores[lista]=COLORES[idx++%COLORES.length];
 
    const tag=document.createElement("div");
-   tag.textContent="📁 "+lista;
+   tag.textContent=lista;
 
    Object.assign(tag.style,{
     background:colores[lista],
@@ -324,10 +326,31 @@ GM_registerMenuCommand("🚫 Yaoi ON/OFF",toggleYaoi);
 
 /* ================= INIT ================= */
 
-setTimeout(()=>{
+window.addEventListener("load", ()=>{
  aplicarEtiquetas();
- aplicarHora();   // 🔥 FIX
- aplicarYaoi();   // 🔥 FIX
-},2000);
+ aplicarHora();
+ aplicarYaoi();
+});
+
+/* ================= SPA FIX ================= */
+
+let timeout;
+
+const observer = new MutationObserver(() => {
+
+ clearTimeout(timeout);
+
+ timeout = setTimeout(() => {
+  aplicarEtiquetas();
+  aplicarHora();
+  aplicarYaoi();
+ }, 300);
+
+});
+
+observer.observe(document.body,{
+ childList:true,
+ subtree:true
+});
 
 })();
