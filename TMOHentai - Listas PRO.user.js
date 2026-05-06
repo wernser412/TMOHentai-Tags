@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         TMOHentai - Listas PRO
 // @namespace    https://tmohentai.com/
-// @version      2026.05.05
-// @description  Etiquetas + modo PRO + auto listas + fix hora + SPA FIX
+// @version      2026.05.06
+// @description  Etiquetas + modo PRO + auto listas + fix hora + SPA FIX (original logic)
 // @author       wernser412
 // @icon         https://github.com/wernser412/TMOHentai-Tags/blob/main/ICONO.png?raw=true
 // @downloadURL  https://github.com/wernser412/TMOHentai-Tags/raw/refs/heads/main/TMOHentai%20-%20Listas%20PRO.user.js
@@ -146,10 +146,9 @@ async function cargarPRO(){
     if(!doc) break;
 
     const items=doc.querySelectorAll(".list-manga-wrap");
-    if(!items.length){
-     seguir=false;
-     break;
-    }
+    if(!items.length) break;
+
+    let nuevos=0;
 
     items.forEach(wrap=>{
      const btn=wrap.querySelector(".btn-remove-from-list");
@@ -158,7 +157,10 @@ async function cargarPRO(){
      const id=btn.dataset.mangaId;
      if(!id) return;
 
-     if(!mangas[id]) mangas[id]=[];
+     if(!mangas[id]){
+      mangas[id]=[];
+      nuevos++;
+     }
 
      if(!mangas[id].includes(nombre)){
       mangas[id].push(nombre);
@@ -168,6 +170,8 @@ async function cargarPRO(){
     if(page % 3 === 0){
      msg(`📄 ${nombre} - página ${page}`);
     }
+
+    if(nuevos===0) seguir=false;
 
     page++;
     await sleep(ESPERA_MS);
