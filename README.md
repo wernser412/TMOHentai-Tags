@@ -1,5 +1,5 @@
 # TMOHentai – Listas PRO
-**Última Actualización:** 05 de mayo de 2026
+**Última Actualización:** 06 de mayo de 2026
 
 Userscript para **tmohentai.com** que agrega etiquetas por listas, resaltado visual y controles avanzados desde Tampermonkey.
 
