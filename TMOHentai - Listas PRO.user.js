@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TMOHentai - Listas PRO
 // @namespace    https://tmohentai.com/
-// @version      2026.05.06
+// @version      2026.05.13
 // @description  Etiquetas + modo PRO + auto listas + fix hora + SPA FIX (original logic)
 // @author       wernser412
 // @icon         https://github.com/wernser412/TMOHentai-Tags/blob/main/ICONO.png?raw=true
@@ -12,6 +12,7 @@
 // @grant        GM_getValue
 // @grant        GM_registerMenuCommand
 // @grant        GM_addStyle
+// @require      https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js
 // ==/UserScript==
 
 (function () {
@@ -249,6 +250,77 @@ GM_addStyle(`
 }
 `);
 
+/* ================= PREVIEW PRO ================= */
+
+GM_addStyle(`
+
+#md-preview-grid{
+ overflow-x:auto;
+ padding:12px 4px !important;
+ gap:12px !important;
+ scroll-behavior:smooth;
+}
+
+#md-preview-grid a{
+ position:relative;
+ display:inline-block !important;
+ overflow:visible !important;
+ transition:z-index .15s ease;
+}
+
+#md-preview-grid a:hover{
+ z-index:99999;
+}
+
+#md-preview-grid img{
+ width:95px !important;
+ height:135px !important;
+ object-fit:cover !important;
+ border-radius:10px;
+ transition:
+  transform .18s ease,
+  box-shadow .18s ease,
+  filter .18s ease;
+ cursor:pointer;
+ background:#111;
+}
+
+#md-preview-grid a:hover img{
+ transform:scale(2.6);
+ box-shadow:0 12px 35px rgba(0,0,0,.75);
+ filter:brightness(1.05);
+}
+
+#tmo-preview-pro{
+ position:fixed;
+ right:20px;
+ top:50%;
+ transform:translateY(-50%);
+ max-height:88vh;
+ max-width:42vw;
+ z-index:999999;
+ border-radius:12px;
+ box-shadow:0 0 40px rgba(0,0,0,.85);
+ display:none;
+ pointer-events:none;
+ background:#000;
+}
+
+#md-preview-grid::-webkit-scrollbar{
+ height:10px;
+}
+
+#md-preview-grid::-webkit-scrollbar-thumb{
+ background:#555;
+ border-radius:999px;
+}
+
+#md-preview-grid::-webkit-scrollbar-track{
+ background:transparent;
+}
+
+`);
+
 function aplicarEtiquetas(){
 
  const mangas=GM_getValue("tmo_mangas",{});
@@ -321,12 +393,155 @@ function aplicarEtiquetas(){
  GM_setValue("tmo_colores",colores);
 }
 
+
+
+/* ================= EXPORTAR EXCEL XLSM ================= */
+
+async function exportarExcel(){
+
+ const listas = GM_getValue("tmo_listas",{});
+
+ if(!Object.keys(listas).length){
+  msg("❌ Primero usa: Capturar + Cargar PRO");
+  setTimeout(hideMsg,1500);
+  return;
+ }
+
+ const excelData = [];
+
+ for(const [nombre,links] of Object.entries(listas)){
+
+  // TITULO LISTA
+  excelData.push({
+   Nombre: nombre,
+   URL: null
+  });
+
+  for(const url of links){
+
+   let page = 1;
+   let seguir = true;
+
+   while(seguir){
+
+    msg(`📊 ${nombre} - página ${page}`);
+
+    const doc = await fetchHTML(url+"?page="+page);
+
+    if(!doc) break;
+
+    const items = doc.querySelectorAll(".list-manga-wrap");
+
+    if(!items.length) break;
+
+    items.forEach(wrap=>{
+
+     const a = wrap.querySelector("a[href*='/library/']");
+
+     if(!a) return;
+
+     const titulo =
+      a.getAttribute("title") ||
+      a.textContent.trim() ||
+      "Sin título";
+
+     const link = a.href || "";
+
+     excelData.push({
+      Nombre: titulo,
+      URL: link
+     });
+
+    });
+
+    if(items.length < 20){
+     seguir = false;
+    }
+
+    page++;
+
+    await sleep(ESPERA_MS);
+   }
+  }
+
+  // ESPACIO ENTRE LISTAS
+  excelData.push({
+   Nombre: null,
+   URL: null
+  });
+ }
+
+ /* ===== EXCEL ===== */
+
+ const ws = XLSX.utils.json_to_sheet(
+  excelData,
+  {
+   skipHeader:true
+  }
+ );
+
+ const wb = XLSX.utils.book_new();
+
+ XLSX.utils.book_append_sheet(
+  wb,
+  ws,
+  "Listas"
+ );
+
+ XLSX.writeFile(
+  wb,
+  "tmohentai-listas.xlsm",
+  {
+   bookType:"xlsm"
+  }
+ );
+
+ msg("✅ XLSM exportado");
+
+ setTimeout(hideMsg,1500);
+}
+
+
+
+
 /* ================= MENU ================= */
 
 GM_registerMenuCommand("⚡ Capturar + Cargar PRO",todoEnUno);
+GM_registerMenuCommand("📊 Exportar listas (Excel)",exportarExcel);
 GM_registerMenuCommand("🧹 Limpiar mangas guardados",limpiarCache);
 GM_registerMenuCommand("⏰ Hora ON/OFF",toggleHora);
 GM_registerMenuCommand("🚫 Yaoi ON/OFF",toggleYaoi);
+
+
+/* ================= HOVER PREVIEW ================= */
+
+const hoverPreview = document.createElement("img");
+
+hoverPreview.id = "tmo-preview-pro";
+
+document.body.appendChild(hoverPreview);
+
+document.addEventListener("mouseover", e => {
+
+ const img = e.target.closest("#md-preview-grid img");
+
+ if(!img) return;
+
+ hoverPreview.src = img.src;
+
+ hoverPreview.style.display = "block";
+
+});
+
+document.addEventListener("mouseout", e => {
+
+ if(e.target.closest("#md-preview-grid img")){
+
+  hoverPreview.style.display = "none";
+
+ }
+
+});
 
 /* ================= INIT ================= */
 
