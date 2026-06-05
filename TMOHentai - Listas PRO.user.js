@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TMOHentai - Listas PRO
 // @namespace    https://tmohentai.com/
-// @version      2026.05.13
+// @version      2026.06.04
 // @description  Etiquetas + modo PRO + auto listas + fix hora + SPA FIX (original logic)
 // @author       wernser412
 // @icon         https://github.com/wernser412/TMOHentai-Tags/blob/main/ICONO.png?raw=true
@@ -224,11 +224,19 @@ function toggleHora(){
 /* ================= YAOI ================= */
 
 function aplicarYaoi(){
+
  const v = GM_getValue("yaoi", false);
- document.querySelectorAll(".element-thumbnail").forEach(el=>{
+
+ document.querySelectorAll(
+  ".manga-card, .element-thumbnail"
+ ).forEach(el=>{
+
   if(!el.querySelector(".data-type-yaoi")) return;
+
   el.style.display = v ? "none" : "";
+
  });
+
 }
 
 function toggleYaoi(){
@@ -323,76 +331,115 @@ GM_addStyle(`
 
 function aplicarEtiquetas(){
 
- const mangas=GM_getValue("tmo_mangas",{});
+ const mangas = GM_getValue("tmo_mangas",{});
+
  if(!Object.keys(mangas).length) return;
 
- const colores=GM_getValue("tmo_colores",{});
- let idx=0;
+ const colores = GM_getValue("tmo_colores",{});
 
- document.querySelectorAll(".element-thumbnail, .list-manga-wrap").forEach(card=>{
+ let idx = Object.keys(colores).length;
 
-  let id;
+ document.querySelectorAll(
+  ".manga-card, .element-thumbnail, .list-manga-wrap"
+ ).forEach(card=>{
 
-  const btn=card.querySelector(".btn-remove-from-list");
+  let id = null;
+
+  const btn = card.querySelector(".btn-remove-from-list");
+
   if(btn){
-   id=btn.dataset.mangaId;
+
+   id = btn.dataset.mangaId;
+
   }else{
-   const a=card.querySelector("a[href*='/library/']");
-   const m=a?.href.match(/\/(\d+)\//);
-   if(m) id=m[1];
+
+   const enlace =
+      card.matches(".manga-card")
+      ? card
+      : card.querySelector("a[href*='/library/']");
+
+   if(enlace){
+
+      const match =
+         enlace.href.match(/\/manga\/(\d+)/) ||
+         enlace.href.match(/\/doujinshi\/(\d+)/) ||
+         enlace.href.match(/\/manhwa\/(\d+)/) ||
+         enlace.href.match(/\/manga\/(\d+)\//) ||
+         enlace.href.match(/\/doujinshi\/(\d+)\//);
+
+      if(match){
+         id = match[1];
+      }
+   }
   }
 
   if(!id) return;
 
-  const thumb=card.querySelector(".work-thumbnail");
+  const listas = mangas[id];
+
+  if(!listas) return;
+
+  const thumb =
+      card.querySelector(".manga-card__cover-wrap") ||
+      card.querySelector(".work-thumbnail");
+
   if(!thumb) return;
 
   thumb.classList.remove("tmo-en-lista");
-  thumb.querySelectorAll(".tmo-labels").forEach(e=>e.remove());
 
-  const listas=mangas[id];
-  if(!listas) return;
+  thumb.querySelectorAll(".tmo-labels")
+      .forEach(e=>e.remove());
 
   thumb.classList.add("tmo-en-lista");
-  thumb.style.position="relative";
 
-  const wrap=document.createElement("div");
-  wrap.className="tmo-labels";
+  thumb.style.position = "relative";
+
+  const wrap = document.createElement("div");
+
+  wrap.className = "tmo-labels";
 
   Object.assign(wrap.style,{
-   position:"absolute",
-   bottom:"6px",
-   left:"6px",
-   display:"flex",
-   flexDirection:"column",
-   gap:"3px",
-   zIndex:50
+      position:"absolute",
+      bottom:"6px",
+      left:"6px",
+      display:"flex",
+      flexDirection:"column",
+      gap:"3px",
+      zIndex:"9999",
+      pointerEvents:"none"
   });
 
   listas.forEach(lista=>{
-   if(!colores[lista]) colores[lista]=COLORES[idx++%COLORES.length];
 
-   const tag=document.createElement("div");
-   tag.textContent=lista;
+      if(!colores[lista]){
+         colores[lista] =
+            COLORES[idx++ % COLORES.length];
+      }
 
-   Object.assign(tag.style,{
-    background:colores[lista],
-    color:"#000",
-    padding:"2px 6px",
-    fontSize:"11px",
-    fontWeight:"bold",
-    borderRadius:"5px"
-   });
+      const tag = document.createElement("div");
 
-   wrap.appendChild(tag);
+      tag.textContent = lista;
+
+      Object.assign(tag.style,{
+         background:colores[lista],
+         color:"#000",
+         padding:"4px 8px",
+         fontSize:"14px",
+         fontWeight:"bold",
+         borderRadius:"6px",
+         boxShadow:"0 1px 4px rgba(0,0,0,.5)"
+      });
+
+      wrap.appendChild(tag);
+
   });
 
   thumb.appendChild(wrap);
+
  });
 
  GM_setValue("tmo_colores",colores);
 }
-
 
 
 /* ================= EXPORTAR EXCEL XLSM ================= */
