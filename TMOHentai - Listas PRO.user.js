@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TMOHentai - Listas PRO
 // @namespace    https://tmohentai.com/
-// @version      2026.06.04
+// @version      2026.06.21
 // @description  Etiquetas + modo PRO + auto listas + fix hora + SPA FIX (original logic)
 // @author       wernser412
 // @icon         https://github.com/wernser412/TMOHentai-Tags/blob/main/ICONO.png?raw=true
@@ -65,6 +65,19 @@ async function fetchHTML(url){
 }
 
 /* ================= LISTAS ================= */
+
+function getMangaId(card){
+  const btn = card.querySelector(".btn-remove-from-list");
+  if(btn?.dataset?.mangaId) return btn.dataset.mangaId;
+
+  const a = card.querySelector("a.manga-card");
+  if(!a) return null;
+
+  const match = a.href.match(/\/(hentai|manga|doujinshi)\/(\d+)/);
+  if(match) return match[2];
+
+  return null;
+}
 
 async function capturarListas(){
 
@@ -205,21 +218,6 @@ function limpiarCache(){
  setTimeout(hideMsg,1200);
 }
 
-/* ================= HORA ================= */
-
-function aplicarHora(){
- const v = GM_getValue("hora", false);
- document.querySelectorAll(".content-detail")
-  .forEach(e => e.style.display = v ? "none" : "");
-}
-
-function toggleHora(){
- const v = !GM_getValue("hora", false);
- GM_setValue("hora", v);
- aplicarHora();
- msg(v ? "⏰ Hora oculta" : "⏰ Hora visible");
- setTimeout(hideMsg,1000);
-}
 
 /* ================= YAOI ================= */
 
@@ -331,74 +329,36 @@ GM_addStyle(`
 
 function aplicarEtiquetas(){
 
- const mangas = GM_getValue("tmo_mangas",{});
+  const mangas = GM_getValue("tmo_mangas",{});
+  if(!Object.keys(mangas).length) return;
 
- if(!Object.keys(mangas).length) return;
+  const colores = GM_getValue("tmo_colores",{});
+  let idx = Object.keys(colores).length;
 
- const colores = GM_getValue("tmo_colores",{});
+  document.querySelectorAll(".manga-card-col").forEach(col => {
 
- let idx = Object.keys(colores).length;
+    const card = col.querySelector(".manga-card");
+    if(!card) return;
 
- document.querySelectorAll(
-  ".manga-card, .element-thumbnail, .list-manga-wrap"
- ).forEach(card=>{
+    let id = getMangaId(col);
+    if(!id) return;
 
-  let id = null;
+    const listas = mangas[id];
+    if(!listas) return;
 
-  const btn = card.querySelector(".btn-remove-from-list");
+    const thumb = col.querySelector(".manga-card__cover-wrap");
+    if(!thumb) return;
 
-  if(btn){
+    // limpiar etiquetas anteriores
+    thumb.querySelectorAll(".tmo-labels").forEach(e => e.remove());
 
-   id = btn.dataset.mangaId;
+    thumb.classList.add("tmo-en-lista");
+    thumb.style.position = "relative";
 
-  }else{
+    const wrap = document.createElement("div");
+    wrap.className = "tmo-labels";
 
-   const enlace =
-      card.matches(".manga-card")
-      ? card
-      : card.querySelector("a[href*='/library/']");
-
-   if(enlace){
-
-      const match =
-         enlace.href.match(/\/manga\/(\d+)/) ||
-         enlace.href.match(/\/doujinshi\/(\d+)/) ||
-         enlace.href.match(/\/manhwa\/(\d+)/) ||
-         enlace.href.match(/\/manga\/(\d+)\//) ||
-         enlace.href.match(/\/doujinshi\/(\d+)\//);
-
-      if(match){
-         id = match[1];
-      }
-   }
-  }
-
-  if(!id) return;
-
-  const listas = mangas[id];
-
-  if(!listas) return;
-
-  const thumb =
-      card.querySelector(".manga-card__cover-wrap") ||
-      card.querySelector(".work-thumbnail");
-
-  if(!thumb) return;
-
-  thumb.classList.remove("tmo-en-lista");
-
-  thumb.querySelectorAll(".tmo-labels")
-      .forEach(e=>e.remove());
-
-  thumb.classList.add("tmo-en-lista");
-
-  thumb.style.position = "relative";
-
-  const wrap = document.createElement("div");
-
-  wrap.className = "tmo-labels";
-
-  Object.assign(wrap.style,{
+    Object.assign(wrap.style,{
       position:"absolute",
       bottom:"6px",
       left:"6px",
@@ -407,38 +367,39 @@ function aplicarEtiquetas(){
       gap:"3px",
       zIndex:"9999",
       pointerEvents:"none"
-  });
+    });
 
-  listas.forEach(lista=>{
+    listas.forEach(lista => {
 
       if(!colores[lista]){
-         colores[lista] =
-            COLORES[idx++ % COLORES.length];
+        colores[lista] = COLORES[idx++ % COLORES.length];
       }
 
       const tag = document.createElement("div");
-
       tag.textContent = lista;
 
       Object.assign(tag.style,{
-         background:colores[lista],
-         color:"#000",
-         padding:"4px 8px",
-         fontSize:"14px",
-         fontWeight:"bold",
-         borderRadius:"6px",
-         boxShadow:"0 1px 4px rgba(0,0,0,.5)"
-      });
+  background:colores[lista],
+  color:"#fff",
+  padding:"5px 10px",
+  fontSize:"11px",
+  fontWeight:"700",
+  borderRadius:"999px",
+  boxShadow:"0 2px 8px rgba(0,0,0,.35)",
+  border:"1px solid rgba(255,255,255,.25)",
+  backdropFilter:"blur(4px)",
+  textShadow:"0 1px 2px rgba(0,0,0,.6)",
+  letterSpacing:"0.3px"
+});
 
       wrap.appendChild(tag);
+    });
+
+    thumb.appendChild(wrap);
 
   });
 
-  thumb.appendChild(wrap);
-
- });
-
- GM_setValue("tmo_colores",colores);
+  GM_setValue("tmo_colores",colores);
 }
 
 
@@ -556,7 +517,6 @@ async function exportarExcel(){
 GM_registerMenuCommand("⚡ Capturar + Cargar PRO",todoEnUno);
 GM_registerMenuCommand("📊 Exportar listas (Excel)",exportarExcel);
 GM_registerMenuCommand("🧹 Limpiar mangas guardados",limpiarCache);
-GM_registerMenuCommand("⏰ Hora ON/OFF",toggleHora);
 GM_registerMenuCommand("🚫 Yaoi ON/OFF",toggleYaoi);
 
 
@@ -594,7 +554,6 @@ document.addEventListener("mouseout", e => {
 
 window.addEventListener("load", ()=>{
  aplicarEtiquetas();
- aplicarHora();
  aplicarYaoi();
 });
 
@@ -602,15 +561,19 @@ window.addEventListener("load", ()=>{
 
 let timeout;
 
+let scheduled = false;
+
 const observer = new MutationObserver(() => {
 
- clearTimeout(timeout);
+  if (scheduled) return;
 
- timeout = setTimeout(() => {
-  aplicarEtiquetas();
-  aplicarHora();
-  aplicarYaoi();
- }, 300);
+  scheduled = true;
+
+  setTimeout(() => {
+    aplicarEtiquetas();
+    aplicarYaoi();
+    scheduled = false;
+  }, 400);
 
 });
 
