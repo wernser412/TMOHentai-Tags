@@ -1,83 +1,89 @@
-# TMOHentai – Listas PRO
-**Última Actualización:** 21 de junio de 2026
+# TMOHentai - Listas PRO
 
-Userscript para **tmohentai.com** que agrega etiquetas por listas, resaltado visual y controles avanzados desde Tampermonkey.
+**Última Actualización:** 14 de julio de 2026
 
-Diseñado para ser **estable**, **rápido** y **resistente a límites de peticiones**.
+Mejora la experiencia en TMOHentai añadiendo etiquetas automáticas, resaltado de mangas, modo PRO para listas, exportación a Excel y varias funciones adicionales.
 
----
+## 📖 Descripción
 
-## ✨ Características
+**TMOHentai - Listas PRO** es un UserScript para **Tampermonkey** que amplía las funciones de TMOHentai permitiendo identificar rápidamente los mangas que pertenecen a tus listas, añadir etiquetas de colores, resaltar mangas automáticamente y administrar tus listas de una forma mucho más cómoda.
 
-- 📁 Etiquetas por listas personales
-- 🟡 Marco amarillo en contenidos que están en una lista
-- 🖼️ Preview PRO con zoom al pasar el mouse
-- ⏰ Mostrar / Ocultar hora de subida
-- 🚫 Ocultar / Mostrar contenido Yaoi
-- 🔄 Actualización de listas con progreso
-- 📊 Exportación de listas a Excel
-- 🧹 Limpieza de caché desde menú
-- ⚠️ Aviso si falta actualizar listas
-- 💾 Guarda configuraciones automáticamente
-- 🔄 Compatibilidad con navegación SPA
-- 🛡️ Protección contra *rate-limit* de TMO
+Además, incorpora herramientas adicionales como exportación a Excel, filtro Yaoi, vista previa mejorada y compatibilidad con la navegación dinámica del sitio.
 
 ---
 
-## 🧩 Requisitos
+# 📥 Instalación
 
-- Navegador moderno (Chrome, Firefox, Edge, Brave)
-- **Tampermonkey** instalado
+1. Instala la extensión **Tampermonkey** para tu navegador.
 
----
+2. Instala el script desde GitHub:
 
-## 📥 Instalación
-
-1. Instala la extensión [Tampermonkey](https://www.tampermonkey.net/) en tu navegador.
-2. Haz clic en este enlace para instalar el script:  
-   👉 **[Descargar Script](https://github.com/wernser412/TMOHentai-Tags/raw/refs/heads/main/TMOHentai%20-%20Listas%20PRO.user.js)**
-   
----
-
-## ▶️ Uso
-
-Una vez instalado:
-
-- El contenido en tus listas aparecerá **marcado con etiquetas** y **marco amarillo**
-- El preview de páginas tendrá **zoom automático**
-- La hora de subida se muestra por defecto
-- El Yaoi **no se oculta** por defecto
-
-Todas las opciones se controlan desde el menú de Tampermonkey.
+**➡️ [Instalar Script](https://github.com/wernser412/TMOHentai-Tags/raw/refs/heads/main/TMOHentai%20-%20Listas%20PRO.user.js)**
 
 ---
 
-## 🔘 Botones disponibles
+# ✨ Características
 
-| Botón | Función |
-|------|--------|
-| ⚡ Capturar + Cargar PRO | Descarga y actualiza tus listas |
-| 📊 Exportar listas (Excel) | Exporta listas a Excel |
-| 🧹 Limpiar mangas guardados | Borra todos los datos guardados |
-| ⏰ Hora ON/OFF | Oculta o muestra la hora de subida |
-| 🚫 Yaoi ON/OFF | Filtra contenido Yaoi |
-
----
-
-## 🛡️ Protección Anti Rate-Limit
-
-El script incluye:
-
-- delays automáticos
-- caché local
-- carga progresiva
-- limitación de requests
-- detección de páginas repetidas
-
-para evitar bloqueos temporales de TMO.
+- 🏷️ Etiquetas automáticas sobre los mangas.
+- 🎨 Cada lista utiliza un color diferente.
+- ⭐ Un manga puede mostrar varias etiquetas al mismo tiempo.
+- ✨ Resaltado visual de mangas pertenecientes a tus listas.
+- 🚀 Modo PRO para cargar automáticamente todas tus listas.
+- ⚡ Capturar listas y cargar el modo PRO con un solo comando.
+- 📊 Exportación de todas las listas a Excel (.xlsm).
+- 🚫 Ocultar mangas Yaoi.
+- 🖼️ Vista previa ampliada de miniaturas.
+- 🔄 Compatible con la navegación dinámica (SPA).
+- 💾 Guarda automáticamente las listas capturadas.
+- 💾 Conserva los colores asignados a cada lista.
+- 🧹 Opción para limpiar toda la caché del script.
 
 ---
 
-## 📄 Licencia
+# 📋 Menú de Tampermonkey
 
-MIT License
+El script añade las siguientes opciones al menú de Tampermonkey:
+
+| Opción | Función |
+|---------|----------|
+| ⚡ Capturar + Cargar PRO | Captura todas tus listas y actualiza la base de datos del script. |
+| 📊 Exportar listas (Excel) | Exporta todas tus listas a un archivo Excel (.xlsm). |
+| 🧹 Limpiar mangas guardados | Borra toda la información almacenada por el script. |
+| 🚫 Yaoi ON/OFF | Activa o desactiva el filtro para ocultar mangas Yaoi. |
+
+---
+
+# 🖥️ Uso
+
+1. Abre TMOHentai e inicia sesión en tu cuenta.
+2. Ejecuta **⚡ Capturar + Cargar PRO** desde el menú de Tampermonkey.
+3. Espera a que finalice el proceso.
+4. Navega normalmente por el sitio.
+
+Las etiquetas aparecerán automáticamente sobre los mangas que pertenezcan a alguna de tus listas.
+
+---
+
+# 💾 Información almacenada
+
+El script guarda automáticamente:
+
+- Tus listas capturadas.
+- Los mangas pertenecientes a cada lista.
+- Los colores asignados a las etiquetas.
+- El estado del filtro Yaoi.
+
+---
+
+# 📄 Requisitos
+
+- Tampermonkey
+- Cuenta de TMOHentai con listas creadas
+
+---
+
+# 📄 Licencia
+
+Este proyecto se distribuye bajo la licencia **MIT**.
+
+Consulta el archivo **LICENSE** para más información.
