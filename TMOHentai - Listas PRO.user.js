@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         TMOHentai - Listas PRO
 // @namespace    https://tmohentai.com/
-// @version      2026.06.21
-// @description  Etiquetas + modo PRO + auto listas + fix hora + SPA FIX (original logic)
+// @version      2026.07.14
+// @description  Etiquetas + modo PRO + auto listas + fix hora + SPA FIX (sin loop infinito, sin etiquetas fantasma)
 // @author       wernser412
 // @icon         https://github.com/wernser412/TMOHentai-Tags/blob/main/ICONO.png?raw=true
 // @downloadURL  https://github.com/wernser412/TMOHentai-Tags/raw/refs/heads/main/TMOHentai%20-%20Listas%20PRO.user.js
@@ -28,6 +28,12 @@ const COLORES = [
  "#90be6d","#43aa8b","#577590","#9b5de5",
  "#f15bb5","#4d96ff","#6a994e","#ffb703"
 ];
+
+// Selectores usados por el SPA FIX para distinguir "llegó una tarjeta nueva"
+// de "el propio script acaba de insertar una etiqueta".
+const SELECTOR_CARD = ".manga-card-col, .manga-card, .element-thumbnail, .md-related-list__item";
+const CLASE_WRAPPER = "tmo-labels";
+const CLASE_OUTLINE = "tmo-en-lista";
 
 /* ================= MENSAJE ================= */
 
@@ -70,7 +76,12 @@ function getMangaId(card){
   const btn = card.querySelector(".btn-remove-from-list");
   if(btn?.dataset?.mangaId) return btn.dataset.mangaId;
 
-  const a = card.querySelector("a.manga-card");
+  // En las tarjetas normales el link está adentro (a.manga-card). En la
+  // lista de "relacionados" el propio elemento YA es el <a>, así que si no
+  // se encuentra nada adentro se prueba con el elemento mismo.
+  const a = card.querySelector("a.manga-card")
+    || card.querySelector("a[href*='/library/']")
+    || (card.matches?.("a[href]") ? card : null);
   if(!a) return null;
 
   const match = a.href.match(/\/(hentai|manga|doujinshi)\/(\d+)/);
@@ -201,11 +212,22 @@ async function cargarPRO(){
 
 /* ================= TODO EN UNO ================= */
 
+// Bandera para evitar que dos ejecuciones corran en paralelo si se hace doble
+// clic en el menú (o alguna petición tarda) y terminan pisándose los datos.
+let procesando = false;
+
 async function todoEnUno(){
- msg("⚡ Iniciando...");
- await capturarListas();
- await cargarPRO();
- aplicarEtiquetas();
+ if(procesando) return;
+ procesando = true;
+
+ try{
+  msg("⚡ Iniciando...");
+  await capturarListas();
+  await cargarPRO();
+  aplicarEtiquetas();
+ } finally {
+  procesando = false;
+ }
 }
 
 /* ================= LIMPIAR ================= */
@@ -214,6 +236,11 @@ function limpiarCache(){
  GM_setValue("tmo_listas",{});
  GM_setValue("tmo_mangas",{});
  GM_setValue("tmo_colores",{});
+
+ // Antes esto solo borraba los datos guardados; las etiquetas y el borde
+ // amarillo seguían visibles en pantalla hasta recargar la página.
+ aplicarEtiquetas();
+
  msg("🧹 Caché limpiado");
  setTimeout(hideMsg,1200);
 }
@@ -248,11 +275,22 @@ function toggleYaoi(){
 /* ================= ETIQUETAS ================= */
 
 GM_addStyle(`
-.tmo-en-lista{
- outline:3px solid #ffd000;
- outline-offset:-3px;
- border-radius:8px;
- box-shadow:0 0 8px rgba(255,208,0,.6);
+@keyframes tmo-pulso{
+ 0%, 100%{
+  box-shadow:
+   inset 0 0 0 3px #ffd000,
+   0 0 14px rgba(255,208,0,.8);
+ }
+ 50%{
+  box-shadow:
+   inset 0 0 0 3px #ffe94d,
+   0 0 24px rgba(255,208,0,1);
+ }
+}
+
+.${CLASE_OUTLINE}{
+ border-radius:10px !important;
+ animation:tmo-pulso 2.2s ease-in-out infinite !important;
 }
 `);
 
@@ -329,6 +367,14 @@ GM_addStyle(`
 
 function aplicarEtiquetas(){
 
+  // Limpieza global antes de re-etiquetar: si un manga fue sacado de todas
+  // las listas desde la última vez, su etiqueta y el borde amarillo se
+  // quedaban pegados para siempre porque el loop de abajo solo toca las
+  // cards que SÍ están en `mangas`. Empezar de cero evita etiquetas fantasma
+  // (esto también hace que "Limpiar caché" se refleje al instante).
+  document.querySelectorAll(`.${CLASE_WRAPPER}`).forEach(e => e.remove());
+  document.querySelectorAll(`.${CLASE_OUTLINE}`).forEach(e => e.classList.remove(CLASE_OUTLINE));
+
   const mangas = GM_getValue("tmo_mangas",{});
   if(!Object.keys(mangas).length) return;
 
@@ -349,14 +395,26 @@ function aplicarEtiquetas(){
     const thumb = col.querySelector(".manga-card__cover-wrap");
     if(!thumb) return;
 
-    // limpiar etiquetas anteriores
-    thumb.querySelectorAll(".tmo-labels").forEach(e => e.remove());
+    if(getComputedStyle(thumb).position === "static"){
+      thumb.style.position = "relative";
+    }
 
-    thumb.classList.add("tmo-en-lista");
-    thumb.style.position = "relative";
+    // El brillo va en `.manga-card` (pegado a la tarjeta), no en la columna
+    // exterior `col` (esa tiene el padding/gutter del grid y el brillo
+    // quedaba muy separado de la tarjeta). Para que no se recorte si
+    // `.manga-card` tenía overflow:hidden, se fuerza a visible aquí; el
+    // recorte de la imagen lo sigue haciendo `.manga-card__cover-wrap`
+    // (thumb) por separado, así que las esquinas de la miniatura no cambian.
+    if(getComputedStyle(card).overflow !== "visible"){
+      card.style.overflow = "visible";
+    }
+    if(getComputedStyle(card).position === "static"){
+      card.style.position = "relative";
+    }
+    card.classList.add(CLASE_OUTLINE);
 
     const wrap = document.createElement("div");
-    wrap.className = "tmo-labels";
+    wrap.className = CLASE_WRAPPER;
 
     Object.assign(wrap.style,{
       position:"absolute",
@@ -399,13 +457,90 @@ function aplicarEtiquetas(){
 
   });
 
+  // ---- Lista de "relacionados" (md-related-list__item) ----
+  // Estructura distinta: el propio elemento es el <a>, y la miniatura vive
+  // en ".media-left". Se procesa aparte porque no tiene ".manga-card-col".
+  document.querySelectorAll(".md-related-list__item").forEach(item => {
+
+    const id = getMangaId(item);
+    if(!id) return;
+
+    const listas = mangas[id];
+    if(!listas) return;
+
+    const thumbRel = item.querySelector(".media-left");
+    if(!thumbRel) return;
+
+    if(getComputedStyle(thumbRel).position === "static"){
+      thumbRel.style.position = "relative";
+    }
+
+    if(getComputedStyle(item).position === "static"){
+      item.style.position = "relative";
+    }
+    item.classList.add(CLASE_OUTLINE);
+
+    const wrapRel = document.createElement("div");
+    wrapRel.className = CLASE_WRAPPER;
+
+    Object.assign(wrapRel.style,{
+      position:"absolute",
+      bottom:"2px",
+      left:"2px",
+      right:"2px",
+      display:"flex",
+      flexDirection:"column",
+      gap:"2px",
+      zIndex:"9999",
+      pointerEvents:"none"
+    });
+
+    listas.forEach(lista => {
+
+      if(!colores[lista]){
+        colores[lista] = COLORES[idx++ % COLORES.length];
+      }
+
+      const tagRel = document.createElement("div");
+      tagRel.textContent = lista;
+
+      Object.assign(tagRel.style,{
+        background:colores[lista],
+        color:"#fff",
+        padding:"1px 5px",
+        fontSize:"8px",
+        fontWeight:"700",
+        borderRadius:"999px",
+        boxShadow:"0 1px 4px rgba(0,0,0,.35)",
+        border:"1px solid rgba(255,255,255,.25)",
+        textShadow:"0 1px 2px rgba(0,0,0,.6)",
+        whiteSpace:"nowrap",
+        overflow:"hidden",
+        textOverflow:"ellipsis"
+      });
+
+      wrapRel.appendChild(tagRel);
+    });
+
+    thumbRel.appendChild(wrapRel);
+
+  });
+
   GM_setValue("tmo_colores",colores);
 }
 
 
 /* ================= EXPORTAR EXCEL XLSM ================= */
 
+// Misma bandera anti doble-clic que todoEnUno(), para no disparar dos
+// exportaciones en paralelo pisándose los datos.
+let exportando = false;
+
 async function exportarExcel(){
+ if(exportando) return;
+ exportando = true;
+
+ try{
 
  const listas = GM_getValue("tmo_listas",{});
 
@@ -507,6 +642,10 @@ async function exportarExcel(){
  msg("✅ XLSM exportado");
 
  setTimeout(hideMsg,1500);
+
+ } finally {
+  exportando = false;
+ }
 }
 
 
@@ -559,13 +698,25 @@ window.addEventListener("load", ()=>{
 
 /* ================= SPA FIX ================= */
 
-let timeout;
-
 let scheduled = false;
 
-const observer = new MutationObserver(() => {
+const observer = new MutationObserver(mutaciones => {
 
   if (scheduled) return;
+
+  // Antes esto reaccionaba a CUALQUIER cambio en el DOM, incluyendo las
+  // propias etiquetas (.tmo-labels) y el borde (.tmo-en-lista) que
+  // aplicarEtiquetas() acaba de insertar. Eso disparaba el observer de
+  // nuevo, que volvía a llamar a aplicarEtiquetas(), en un loop infinito
+  // (corría cada 400ms para siempre). Ahora solo reacciona si de verdad
+  // llegó una tarjeta de manga nueva.
+  const hayCambioReal = mutaciones.some(m =>
+    [...m.addedNodes].some(n =>
+      n.nodeType === 1 &&
+      (n.matches?.(SELECTOR_CARD) || n.querySelector?.(SELECTOR_CARD))
+    )
+  );
+  if (!hayCambioReal) return;
 
   scheduled = true;
 
